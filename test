@@ -64,6 +64,7 @@ local hf = hookfunction
 
 -- Outer blur
 local Blur = Instance.new("BlurEffect")
+Blur.Name = "Xenon_Blur"
 Blur.Size = 0
 Blur.Parent = game.Lighting
 
@@ -131,6 +132,12 @@ function GetAsset(Asset)
 end
 
 function LibraryV2.UI(Name)
+
+    if game.CoreGui:FindFirstChild("TUI2") then
+        game.CoreGui.TUI2:Destroy();
+        game.Lighting:FindFirstChild("Xenon_Blur"):Destroy();
+    end
+
     local Library
     Library = {
         _UI = game:GetObjects("rbxassetid://8388979705")[1],
@@ -350,7 +357,7 @@ function LibraryV2.UI(Name)
         end
 
         local Spotify = function(url,method,token)
-            local success, res = pcall(syn.request, {
+            local success, res = pcall(request, {
                     Url = url,
                     Method = method,
                     Headers = {
@@ -502,6 +509,10 @@ function LibraryV2:Tab(Name, Icon)
         self.Hide_All()
         self.Show(Tab.Containers)
     end)
+    
+    self._UI.Lib.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        self._UI.Lib.Holder.CanvasSize = UDim2.new(0,0,0,self._UI.Lib.Holder.UIListLayout.AbsoluteContentSize.Y)
+    end)
 
     return setmetatable(Tab, LibraryV2)
 end
@@ -579,6 +590,7 @@ function LibraryV2:Button(Name, Callback)
     Button = {
         Name = Name,
         Callback = Callback or function() end,
+        Class = "Button",
 
         Asset = GetAsset("Button"):Clone(),
 
@@ -607,6 +619,7 @@ function LibraryV2:Toggle(Name, StartingState, Callback)
         Name = Name,
         State = StartingState,
         Callback = Callback or function() end,
+        Class = "Toggle",
 
         Asset = GetAsset("Toggle"):Clone(),
 
@@ -641,6 +654,7 @@ function LibraryV2:Dropdown(Name, List, Callback)
         Callback = Callback or function() end,
         State = false,
         Debounce = false,
+        Class = "Dropdown",
 
         Asset = GetAsset("Dropdown"):Clone(),
 
@@ -651,6 +665,10 @@ function LibraryV2:Dropdown(Name, List, Callback)
         Update = function(...)
             Dropdown.Asset.NameLabel.Text = "  "..Dropdown.Name
             Dropdown.Other.ExtensionSize = ((70) + (45*#Dropdown.List) + (5*#Dropdown.List))
+
+            if #Dropdown.List > 6 then
+                Dropdown.Other.ExtensionSize = 375;
+            end
 
             for _, v in pairs(Dropdown.Asset.DropContainer:GetChildren()) do
                 if v:IsA("TextButton") then
@@ -682,6 +700,14 @@ function LibraryV2:Dropdown(Name, List, Callback)
                 end)
 
             end
+
+            if #Dropdown.List > 6 then
+                local Content = Dropdown.Asset.DropContainer.UIListLayout.AbsoluteContentSize
+                Dropdown.Asset.DropContainer.CanvasSize = UDim2.new(0, 0, 0, Content.Y + 69);
+            else
+                Dropdown.Asset.DropContainer.CanvasSize = UDim2.new(0, 0, 0, 0);
+            end
+
         end
     }
     table.insert(self.Assets, Dropdown.Asset)
@@ -727,6 +753,7 @@ function LibraryV2:Label(Text)
     local Label
     Label = {
         Text = Text,
+        Class = "Label",
 
         Asset = GetAsset("LabelTemplate"):Clone(),
 
@@ -752,6 +779,7 @@ function LibraryV2:Keybind(Name, Starting_Key, Blacklisted_Keys, Callback)
         Blacklist = Blacklisted_Keys or {"W", "A", "S", "D"},
         Callback = Callback or function() end,
         Debounce = false,
+        Class = "Keybind",
 
         Asset = GetAsset("Key"):Clone(),
 
@@ -850,6 +878,7 @@ function LibraryV2:TextBox(Name, Callback)
         Name = Name,
         Callback = Callback or function() end,
         CanCall = true,
+        Class = "TextBox",
 
         Asset = GetAsset("Textbox"):Clone(),
 
@@ -899,6 +928,7 @@ function LibraryV2:Slider(Name, Min, Max, Start, Callback, Use_Decimals)
         Max = Max or 100,
         Value = Start or math.floor((Max/2)+0.5),
         Callback = Callback or function() end,
+        Class = "Slider",
 
         Values = {
             Dragging = false,
@@ -912,7 +942,7 @@ function LibraryV2:Slider(Name, Min, Max, Start, Callback, Use_Decimals)
 
             local New = Slider.Value
             Slider.Asset.Slider_Whole.Slider:TweenSize(UDim2.new((New or 0) / Slider.Max, 0, 1, 0), "Out", "Sine", 0.1, true)
-			Slider.Asset.Percentage.Text = tostring(New and (Use_Decimals and RoundNumber(((New / Slider.Max) * (Slider.Max - Slider.Min) + Slider.Min), 1) or math.floor((New / Slider.Max) * (Slider.Max - Slider.Min) + Slider.Min) or 0))
+			Slider.Asset.Percentage.Text = tostring(New)
 
             --[[
 			if bool then
@@ -961,6 +991,33 @@ function LibraryV2:Slider(Name, Min, Max, Start, Callback, Use_Decimals)
     end
     )
 
+end
+
+function LibraryV2:Update(a_1, ...)
+    local Class = self.Class;
+
+    if (...) then
+        for i,v in pairs({...}) do
+            self[i] = v
+        end
+    end;
+
+    if not a_1 then return end;
+    if Class == "Button" then
+        self.Callback = a_1;
+    elseif Class == "Toggle" then
+        self.State = a_1;
+        self.Update();
+        pcall(self.Callback, self.State)
+    elseif Class == "Label" then
+        self.Text = a_1;
+    elseif Class == "Slider" then       
+        self.Value = a_1;
+    elseif Class == "Dropdown" then
+        self.List = a_1;
+    end
+
+    self.Update();
 end
 
 function LibraryV2:UpdateNotifications()
@@ -1031,11 +1088,6 @@ function LibraryV2:Notification(Title, Info, Icon, Last)
         LibraryV2:UpdateNotifications()
     end)
     LibraryV2:UpdateNotifications()
-end
-
-function LibraryV2:Toggle(State)
-    self.State = State or not self.State
-    self.Update()
 end
 
 function LibraryV2:SetToggleKey(Key)
