@@ -1376,7 +1376,7 @@ function DarkLib:Window()
 		end
 
 		function Cont:Keybind(text, key, callback)
-			local Key = key.Name
+			local Key = key
 
 			local Bind = Instance.new("TextButton")
 			local BindUICorner = Instance.new("UICorner")
