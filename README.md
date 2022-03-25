@@ -2,6 +2,6 @@
 Hello!!!!
 This are the script for roblox.
 roblox.com
-Please don't steal credits.
+some are not mine bla bla bla
 My discord
 Blox#6849
